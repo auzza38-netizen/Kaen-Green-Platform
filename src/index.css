@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Prompt', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Noto Sans Thai', 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Prompt', 'Noto Sans Thai', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-kaen-canvas: #F7F5EF;
+  --color-kaen-surface: #FFFFFF;
+  --color-kaen-Subtle: #FAF8F3;
+  --color-kaen-border: #E6E2D6;
+  --color-kaen-primary: #5A8F3E;
+  --color-kaen-primary-dark: #436E2C;
+  --color-kaen-deep: #263E1A;
+  --color-kaen-sprout: #77BF6E;
+  --color-kaen-gold: #F2C94C;
+  --color-kaen-earth: #8B5E34;
+}
+
+@layer base {
+  body {
+    font-family: 'Noto Sans Thai', 'Prompt', sans-serif;
+    background-color: #F7F5EF;
+    color: #23311D;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6, button, nav, th {
+    font-family: 'Prompt', 'Noto Sans Thai', sans-serif;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom subtle scrollbars for minimal luxury aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F7F5EF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D5CFC0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B5E34;
+}

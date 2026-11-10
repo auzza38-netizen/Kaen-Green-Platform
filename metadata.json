@@ -1,0 +1,10 @@
+{
+  "name": "StockSmart POS & Cloud Inventory",
+  "description": "ระบบเช็คสต็อคสินค้าและ POS ออนไลน์ สแกนบาร์โค้ด/QR Code ออกใบส่งของ/ใบวางบิล/ใบเสร็จ แจ้งเตือนสินค้าใกล้หมด พร้อม AI ผู้ช่วยวิเคราะห์",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
