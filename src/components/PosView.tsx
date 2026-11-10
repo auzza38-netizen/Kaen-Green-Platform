@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Product, CartItem, DocumentInfo, User } from '../types';
+import { Product, CartItem, DocumentInfo, User, Customer, ShippingMethod } from '../types';
 import {
   ShoppingCart,
   Search,
@@ -14,12 +14,14 @@ import {
   Printer,
   X,
   ArrowLeft,
-  Home
+  Home,
+  Users
 } from 'lucide-react';
 import { DocumentTemplate } from './DocumentTemplate';
 
 interface PosViewProps {
   products: Product[];
+  customers?: Customer[];
   onCompleteSale: (document: Partial<DocumentInfo>) => void;
   onOpenScanner: () => void;
   currentUser: User;
@@ -28,6 +30,7 @@ interface PosViewProps {
 
 export const PosView: React.FC<PosViewProps> = ({
   products = [],
+  customers = [],
   onCompleteSale,
   onOpenScanner,
   currentUser,
@@ -37,10 +40,14 @@ export const PosView: React.FC<PosViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-  // Order Details
+  // Order & Customer / Recipient Details
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [customerName, setCustomerName] = useState('ลูกค้าหน้าร้าน (Walk-in Customer)');
+  const [recipientName, setRecipientName] = useState('ลูกค้าหน้าร้าน');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [shippingMethod, setShippingMethod] = useState<'ส่งเอง' | 'ขนส่งเอกชน' | 'ลูกค้ารับเอง'>('ลูกค้ารับเอง');
+  const [customerTaxId, setCustomerTaxId] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('ลูกค้ารับเอง');
   const [includeVat, setIncludeVat] = useState(false);
   const [cartDiscount, setCartDiscount] = useState<number>(0);
 
@@ -52,6 +59,7 @@ export const PosView: React.FC<PosViewProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const safeProducts = products || [];
+  const safeCustomers = customers || [];
   const categories = Array.from(new Set(safeProducts.map(p => p.category)));
 
   const filteredProducts = safeProducts.filter(p => {
@@ -130,6 +138,28 @@ export const PosView: React.FC<PosViewProps> = ({
   const grandTotal = grandSubtotalAfterDiscount + taxAmount;
   const changeAmount = paymentMethod === 'CASH' ? Math.max(0, cashTendered - grandTotal) : 0;
 
+  const handleSelectPosCustomer = (custId: string) => {
+    setSelectedCustomerId(custId);
+    if (!custId) {
+      setCustomerName('ลูกค้าหน้าร้าน (Walk-in Customer)');
+      setRecipientName('ลูกค้าหน้าร้าน');
+      setCustomerPhone('');
+      setCustomerTaxId('');
+      setCustomerAddress('');
+      setShippingMethod('ลูกค้ารับเอง');
+      return;
+    }
+    const found = safeCustomers.find(c => c.id === custId);
+    if (found) {
+      setCustomerName(found.name);
+      setRecipientName(found.recipientName || found.name);
+      setCustomerPhone(found.phone || '');
+      setCustomerTaxId(found.taxId || '');
+      setCustomerAddress(found.address || '');
+      setShippingMethod(found.defaultShippingMethod || 'ลูกค้ารับเอง');
+    }
+  };
+
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
@@ -145,10 +175,13 @@ export const PosView: React.FC<PosViewProps> = ({
       id: `doc-${Date.now()}`,
       documentNo: docNo,
       type: 'RECEIPT',
+      customerId: selectedCustomerId || undefined,
       customerName: customerName.trim() || 'ลูกค้าหน้าร้าน (Walk-in Customer)',
       customerPhone: customerPhone || undefined,
+      customerTaxId: customerTaxId || undefined,
+      customerAddress: customerAddress || undefined,
       shippingMethod: shippingMethod,
-      recipientName: customerName.trim() || 'ลูกค้าหน้าร้าน',
+      recipientName: recipientName.trim() || customerName.trim() || 'ลูกค้าหน้าร้าน',
       items: cart.map(i => ({
         productCode: i.product.code,
         productName: i.product.name,
@@ -438,12 +471,12 @@ export const PosView: React.FC<PosViewProps> = ({
 
       {/* Payment Selection Modal */}
       {paymentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23311D]/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E6E2D6] text-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#23311D]/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E6E2D6] text-xs my-8">
             <div className="flex justify-between items-center pb-3 border-b border-[#E6E2D6]">
               <h3 className="font-bold text-[#263E1A] text-sm flex items-center gap-2">
                 <Banknote className="w-5 h-5 text-[#5A8F3E]" />
-                <span>ยืนยันการชำระเงิน</span>
+                <span>ยืนยันการชำระเงิน & เชื่อมโยงลูกค้า</span>
               </h3>
               <button onClick={() => setPaymentModalOpen(false)}>
                 <X className="w-4 h-4 text-[#8B5E34]" />
@@ -458,14 +491,37 @@ export const PosView: React.FC<PosViewProps> = ({
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <label className="font-semibold text-[#23311D] block">ชื่อลูกค้า & วิธีการรับสินค้า</label>
+              <div className="space-y-2 bg-[#FAF8F3] p-3.5 rounded-xl border border-[#E6E2D6]">
+                <label className="font-bold text-[#263E1A] flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-[#5A8F3E]" />
+                  <span>เลือกลูกค้า / ผู้รับสินค้าจากระบบ (หรือลูกค้าหน้าร้าน)</span>
+                </label>
+                <select
+                  value={selectedCustomerId}
+                  onChange={e => handleSelectPosCustomer(e.target.value)}
+                  className="w-full p-2.5 bg-white border border-[#5A8F3E] rounded-xl font-medium text-[#23311D]"
+                >
+                  <option value="">ลูกค้าหน้าร้านทั่วไป (Walk-in Customer)</option>
+                  {safeCustomers.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.recipientName ? `(ผู้รับ: ${c.recipientName})` : ''}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="text"
-                  placeholder="ชื่อลูกค้า (เช่น คุณสมชาย / ลูกค้าหน้าร้าน)"
+                  placeholder="ชื่อลูกค้า / บริษัท"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
-                  className="w-full p-2.5 bg-[#F7F5EF] border border-[#E6E2D6] rounded-xl focus:outline-none focus:border-[#5A8F3E]"
+                  className="w-full p-2.5 bg-white border border-[#E6E2D6] rounded-xl focus:outline-none focus:border-[#5A8F3E]"
+                />
+                <input
+                  type="text"
+                  placeholder="ชื่อผู้รับสินค้า (แสดงในใบเสร็จรับเงิน)"
+                  value={recipientName}
+                  onChange={e => setRecipientName(e.target.value)}
+                  className="w-full p-2.5 bg-white border border-[#E6E2D6] rounded-xl focus:outline-none focus:border-[#5A8F3E]"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -473,15 +529,15 @@ export const PosView: React.FC<PosViewProps> = ({
                     placeholder="เบอร์โทรศัพท์"
                     value={customerPhone}
                     onChange={e => setCustomerPhone(e.target.value)}
-                    className="w-full p-2.5 bg-[#F7F5EF] border border-[#E6E2D6] rounded-xl focus:outline-none focus:border-[#5A8F3E]"
+                    className="w-full p-2.5 bg-white border border-[#E6E2D6] rounded-xl focus:outline-none focus:border-[#5A8F3E]"
                   />
                   <select
                     value={shippingMethod}
-                    onChange={e => setShippingMethod(e.target.value as any)}
-                    className="w-full p-2.5 bg-[#F7F5EF] border border-[#E6E2D6] rounded-xl font-medium text-[#23311D]"
+                    onChange={e => setShippingMethod(e.target.value as ShippingMethod)}
+                    className="w-full p-2.5 bg-white border border-[#E6E2D6] rounded-xl font-medium text-[#23311D]"
                   >
                     <option value="ลูกค้ารับเอง">ลูกค้ารับเองหน้าร้าน</option>
-                    <option value="ส่งเอง">รถจัดส่ง KAEN GREEN</option>
+                    <option value="ส่งเอง">ส่งเอง (KAEN GREEN)</option>
                     <option value="ขนส่งเอกชน">ขนส่งเอกชน</option>
                   </select>
                 </div>

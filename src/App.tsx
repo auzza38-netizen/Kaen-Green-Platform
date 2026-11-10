@@ -255,22 +255,33 @@ export const App: React.FC = () => {
     setUsers(prev => prev.filter(u => u.id !== userId));
   };
 
+  // State for cross-linking CustomerManager -> DocumentManager
+  const [initialCustomerForDoc, setInitialCustomerForDoc] = useState<{
+    customer: Customer;
+    docType: 'DELIVERY_NOTE' | 'BILLING_NOTE' | 'RECEIPT';
+  } | null>(null);
+  const [initialFilterCustomerId, setInitialFilterCustomerId] = useState<string | null>(null);
+
   // Customer Management Handlers
-  const handleAddCustomer = (custData: Omit<Customer, 'id' | 'createdAt'>) => {
+  const handleAddCustomer = (custData: Omit<Customer, 'id' | 'createdAt'>): Customer => {
     const newCust: Customer = {
       ...custData,
       id: `cust-${Date.now()}`,
       createdAt: new Date().toISOString()
     };
     setCustomers(prev => [newCust, ...prev]);
+    showToast(`บันทึกข้อมูลลูกค้า/ผู้รับสินค้า "${newCust.name}" เรียบร้อย`);
+    return newCust;
   };
 
   const handleUpdateCustomer = (id: string, custData: Partial<Customer>) => {
     setCustomers(prev => prev.map(c => (c.id === id ? ({ ...c, ...custData } as Customer) : c)));
+    showToast('อัปเดตข้อมูลลูกค้า/ผู้รับสินค้าเรียบร้อย');
   };
 
   const handleDeleteCustomer = (id: string) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
+    showToast('ลบข้อมูลลูกค้าเรียบร้อย');
   };
 
   // Backup Handlers
@@ -312,14 +323,14 @@ export const App: React.FC = () => {
       groupLabel: 'คลังสินค้าและงานขาย',
       items: [
         { id: 'inventory', label: 'เช็คสต็อคสินค้า', icon: Package, count: products.length },
-        { id: 'pos', label: 'ระบบขายหน้าร้าน POS', icon: ShoppingCart },
-        { id: 'documents', label: 'ใบส่งของ / ใบวางบิล / ใบเสร็จ', icon: FileText, count: documents.length }
+        { id: 'pos', label: 'ระบบขายหน้าร้าน POS', icon: ShoppingCart }
       ]
     },
     {
-      groupLabel: 'ลูกค้าและการจัดส่ง',
+      groupLabel: 'ลูกค้าและเอกสารการค้า',
       items: [
-        { id: 'customers', label: 'ลูกค้า / ผู้รับสินค้า HoReCa', icon: Users, count: customers.length },
+        { id: 'customers', label: 'ลูกค้า / ผู้รับสินค้า', icon: Users, count: customers.length },
+        { id: 'documents', label: 'เอกสารการค้า (ใบส่งของ/ใบเสร็จ)', icon: FileText, count: documents.length },
         { id: 'delivery', label: 'ติดตามการจัดส่ง Cold Chain', icon: Truck }
       ]
     },
@@ -341,11 +352,11 @@ export const App: React.FC = () => {
       case 'inventory':
         return { title: 'คลังสินค้าและสต็อคผักปลอดภัย', subtitle: 'จัดการสต็อคสินค้า ปรับ/เติมสต็อค และตรวจสอบสินค้าใกล้หมดแบบเรียลไทม์' };
       case 'pos':
-        return { title: 'ระบบขายหน้าร้าน (Point of Sale)', subtitle: 'คิดเงินรวดเร็ว สแกนบาร์โค้ด ตัดสต็อคอัตโนมัติ และพิมพ์ใบเสร็จทันที' };
+        return { title: 'ระบบขายหน้าร้าน (Point of Sale)', subtitle: 'คิดเงินรวดเร็ว สแกนบาร์โค้ด เชื่อมโยงข้อมูลลูกค้า และพิมพ์ใบเสร็จทันที' };
       case 'documents':
-        return { title: 'เอกสารการค้า (ใบส่งของ · ใบวางบิล · ใบเสร็จ)', subtitle: 'ออกเอกสารสำหรับลูกค้า B2B โรงแรม ร้านอาหาร HoReCa และลูกค้าทั่วไป' };
+        return { title: 'เอกสารการค้า (ใบส่งของ · ใบวางบิล · ใบเสร็จรับเงิน)', subtitle: 'ออกเอกสารการค้าโดยดึงข้อมูลจากฐานข้อมูลลูกค้าและผู้รับสินค้าอัตโนมัติ' };
       case 'customers':
-        return { title: 'ฐานข้อมูลลูกค้าและผู้รับสินค้า (CRM & HoReCa)', subtitle: 'จัดการรายชื่อโรงแรม ร้านอาหาร ลูกค้าประจำ และที่อยู่จัดส่ง' };
+        return { title: 'ลูกค้า / ผู้รับสินค้า (เชื่อมโยงเอกสารการค้า)', subtitle: 'จัดการข้อมูลลูกค้า ผู้รับมอบสินค้า ที่อยู่จัดส่ง และออกเอกสารการค้าได้ทันที' };
       case 'delivery':
         return { title: 'ติดตามสถานะการจัดส่ง (Cold Chain Logistics)', subtitle: 'ตรวจสอบสถานะการเตรียมผักสดและการขนส่งควบคุมอุณหภูมิถึงมือลูกค้า' };
       case 'reports':
@@ -512,6 +523,7 @@ export const App: React.FC = () => {
             {activeTab === 'pos' && (
               <PosView
                 products={products}
+                customers={customers}
                 onCompleteSale={handleCompleteSale}
                 onOpenScanner={() => setScannerOpen(true)}
                 currentUser={currentUser}
@@ -523,18 +535,34 @@ export const App: React.FC = () => {
               <DocumentManager
                 documents={documents}
                 products={products}
+                customers={customers}
                 onCreateDocument={handleCreateDocument}
+                onAddCustomer={handleAddCustomer}
                 onUpdateDeliveryStatus={handleUpdateDeliveryStatus}
                 currentUser={currentUser}
+                initialCustomerForDoc={initialCustomerForDoc}
+                onClearInitialCustomerForDoc={() => setInitialCustomerForDoc(null)}
+                initialFilterCustomerId={initialFilterCustomerId}
+                onClearFilterCustomerId={() => setInitialFilterCustomerId(null)}
+                onNavigateToCustomers={() => setActiveTab('customers')}
               />
             )}
 
             {activeTab === 'customers' && (
               <CustomerManager
                 customers={customers}
+                documents={documents}
                 onAddCustomer={handleAddCustomer}
                 onUpdateCustomer={handleUpdateCustomer}
                 onDeleteCustomer={handleDeleteCustomer}
+                onIssueDocumentForCustomer={(customer, docType) => {
+                  setInitialCustomerForDoc({ customer, docType });
+                  setActiveTab('documents');
+                }}
+                onOpenDocumentsTabForCustomer={customer => {
+                  setInitialFilterCustomerId(customer.id);
+                  setActiveTab('documents');
+                }}
               />
             )}
 

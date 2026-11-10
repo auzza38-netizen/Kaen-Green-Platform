@@ -54,10 +54,11 @@ export const Header: React.FC<HeaderProps> = ({
   const safeUsers = users || [];
   const unreadCount = safeNotifications.filter(n => !n.read).length;
 
-  // Primary top nav links (5 core links for clean Top Bar Contract)
+  // Primary top nav links
   const primaryNavLinks = [
     { id: 'inventory', label: 'คลังสินค้า' },
     { id: 'pos', label: 'ขายหน้าร้าน POS' },
+    { id: 'customers', label: 'ลูกค้า / ผู้รับสินค้า' },
     { id: 'documents', label: 'เอกสารการค้า' },
     { id: 'delivery', label: 'การจัดส่ง' },
     { id: 'reports', label: 'รายงานสรุป' }

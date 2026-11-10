@@ -125,8 +125,13 @@ export const DocumentTemplate: React.FC<DocumentTemplateProps> = ({
           {document.recipientName && (
             <p className="text-[#6B665B] mt-1 flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-[#5A8F3E]" />
-              <span>ผู้รับมอบ:</span>
+              <span>ผู้รับมอบสินค้า:</span>
               <span className="font-semibold text-[#23311D]">{document.recipientName}</span>
+            </p>
+          )}
+          {document.customerTaxId && (
+            <p className="text-[#8B5E34] font-mono tabular-nums mt-0.5">
+              เลขประจำตัวผู้เสียภาษี: {document.customerTaxId}
             </p>
           )}
           {document.customerAddress && <p className="text-[#6B665B] mt-1">{document.customerAddress}</p>}

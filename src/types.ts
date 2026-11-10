@@ -21,6 +21,8 @@ export interface Customer {
   id: string;
   name: string; // ชื่อลูกค้า / บริษัท / ผู้รับสินค้า
   recipientName?: string; // ชื่อผู้รับสินค้า (กรณีแตกต่างจากชื่อสั่งซื้อ)
+  customerType?: 'B2B_HORECA' | 'CORPORATE' | 'GENERAL';
+  defaultShippingMethod?: ShippingMethod;
   taxId?: string;
   phone?: string;
   email?: string;
@@ -73,6 +75,7 @@ export interface DocumentInfo {
   id: string;
   documentNo: string; // e.g. INV-202607001, DO-202607001, REC-202607001
   type: 'DELIVERY_NOTE' | 'BILLING_NOTE' | 'RECEIPT'; // ใบส่งของ, ใบวางบิล, ใบเสร็จรับเงิน
+  customerId?: string; // รหัสอ้างอิงเชื่อมโยงฐานข้อมูลลูกค้า/ผู้รับสินค้า
   customerName: string;
   recipientName?: string; // ผู้รับสินค้า
   customerAddress?: string;
